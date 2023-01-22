@@ -7,16 +7,6 @@ const multer = require('multer');
 const app = express();
 
 
-const accessKeyID = 'AKIA4P65QUWDC7D2XBMH';
-const secretAccessKey = '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';
-
-
-// AWS.config.update({
-//     accessKeyID,
-//     secretAccessKey
-// });
-
-
 const s3 = new AWS.S3({
     signatureVersion: 'v4'
 });
@@ -53,24 +43,6 @@ s3.putBucketCors(params, (err, data) => {
         console.log(data);
     }
 });
-
-
-// Allowed Origins
-// const allowedOrigins = [ 'http://localhost:3000' ];
-
-
-// Configurations
-// const corsConfig = {
-//     origin: (origin, callback) => {
-//         if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-//             callback(null, true);
-//         } else {
-//             callback(new Error('Not allowed by CORS'));
-//         }
-//     },
-//     optionsSuccessStatus: 200,
-//     credentials: true
-// };
 
 
 app.use(cors());
@@ -140,26 +112,6 @@ app.get('/getFiles/:email', async (req, res, next) => {
         return res.status(200).json({ files });
     });
 });
-
-// app.get('/downloadFile', async (req, res, next) => {
-//     const { path } = req.query;
-    
-
-//     const params = {
-//         Bucket: 'krayo-bucket-test',
-//         Key: path,
-//         Expires: 60
-//     }
-
-//     s3.getSignedUrl('getObject', params, (err, url) => {
-//         if (err) {
-//             console.log(err);
-//             return res.status(500).json({ message: 'Could not get the pre-signed url' });
-//         }
-//         console.log(url);
-//         return res.status(200).json({ url });
-//     });
-// });
 
 
 app.listen(4500, () => {
