@@ -1,6 +1,17 @@
-const checkAccessTokenValid = (loggedInUser) => {
+// Packages
+const jwt_decode = require('jwt-decode');
+
+
+// Models
+const User = require('../models/User');
+
+
+const checkAccessTokenValid = (accessToken) => {
+    if (accessToken?.length === 0) {
+        return false;
+    }
     const now = parseInt(Date.now() / 1000);
-    const expiry = loggedInUser.exp;
+    const expiry = jwt_decode(accessToken).exp;
     console.log('Now: ', now);
     console.log('Expiry: ', expiry);
     return now < expiry;
@@ -8,11 +19,22 @@ const checkAccessTokenValid = (loggedInUser) => {
 
 
 const verifyUser = async (req, res, next) => {
-    const { loggedInUser, email } = req.body;
-    console.log(loggedInUser);
-    console.log(email);
+    console.log(req.headers.authorization);
+    const auth = req.headers.authorization;
 
-    // console.log(checkAccessTokenValid(loggedInUser));
+    if (!req.headers.authorization) {
+        return res.status(403).json({ error: 'AccessToken not provided in header' });
+    }
+
+    if (!checkAccessTokenValid(auth.split(' ')[1])) {
+        return res.status(403).json({ error: 'Invalid AccessToken. Login Again.' });
+    }
+
+    const foundUser = await User.findOne({ accessToken: auth.split(' ')[1] }).exec();
+
+    if (!foundUser) {
+        return res.status(403).json({ error: 'No user with this accessToken exists. Login Again.' });
+    }
 
     // if (!checkAccessTokenValid(loggedInUser)) {
     //     return res.status(403).json({ message: 'Access Token expired. Login required' });
