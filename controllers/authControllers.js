@@ -34,7 +34,7 @@ module.exports.verifyToken = async (req, res, next) => {
     const foundUser = await User.findOne({ email: user.email }).exec();
 
     if (!foundUser) {
-        const newUser = new User({ name: user.name, email: user.email, accessToken: accessToken }).exec();
+        const newUser = new User({ name: user.name, email: user.email, accessToken: accessToken });
         await newUser.save();
         return res.status(201).json({ user: newUser, accessToken });
     }

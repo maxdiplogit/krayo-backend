@@ -29,7 +29,7 @@ module.exports.uploadFile = async (req, res, next) => {
     }
 
 
-    s3.headObject({ Bucket: 'krayo-bucket-test', Key: `${ user._id }/${ file.originalname }` }, (err, data) => {
+    s3.headObject({ Bucket: 'krayo-bucket-test', Key: `${ user._id }/${ file.originalname }` }, async (err, data) => {
         console.log(err);
         console.log(data);
         if (err && err.code === 'NotFound') {
@@ -40,7 +40,25 @@ module.exports.uploadFile = async (req, res, next) => {
                 ContentType: file.mimetype
             };
 
-            // The file does not exist, and hence can be uploaded onto the bucket
+            const data = await s3.listObjectsV2({ Bucket: 'krayo-bucket-test', Prefix: `${ user._id }/` }).promise();
+            
+            const files = data.Contents;
+
+            // This is a linear approach. A more optimized approach would be to use a hashing algorithm such that finding duplicated can be done in O(1) as compared to linear O(N).
+            // For collision purposes, we could use LL based hashing algorithms. Its the most easiest algorithm to implement in case of collisions
+            for (let f of files) {
+                const fData = await s3.getObject({ Bucket: 'krayo-bucket-test', Key: `${ f.Key }` }).promise();
+
+                const s3FileBuffer = fData.Body;
+                const fileBuffer = file.buffer;
+                
+                if (Buffer.compare(s3FileBuffer, fileBuffer) === 0) {
+                    console.log('A file with the same contents already exists!');
+                    return res.status(409).json({ error: 'A file with the same contents already exists!' });
+                }
+            }
+            
+            // The file neither the with same name, nor with the same contents exist, and hence can be uploaded onto the bucket
             s3.upload(params, (err, data) => {
                 if (err) {
                     console.log(err);
@@ -70,9 +88,11 @@ module.exports.uploadFile = async (req, res, next) => {
 
                     // Create a new file with a random 5 digit number in front of it
                     const randomNumber = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+                    const fileName = file.originalname.split('.')[0];
+                    const mimetype = file.originalname.split('.')[1];
                     const params = {
                         Bucket: 'krayo-bucket-test',
-                        Key: `${ user._id }/${ file.originalname }_${ randomNumber }`,
+                        Key: `${ user._id }/${ fileName }_${ randomNumber }.${ mimetype }`,
                         Body: file.buffer,
                         ContentType: file.mimetype
                     };
